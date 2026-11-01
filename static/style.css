@@ -76,6 +76,10 @@ ul.item-list li.hidden-item{display:none;}
 .item-text{flex:1;min-width:0;}
 .item-name{font-size:15px;font-weight:500;}
 .item-price{font-size:12px;color:#8a8574;margin-top:1px;}
+
+ul.item-list li:not(.selected){opacity:0.6;}
+ul.item-list li.selected{background:var(--accent-weak);}
+ul.item-list li.selected .item-name{font-weight:700;color:var(--accent);}
 .delete-btn{width:22px;height:22px;border-radius:6px;border:none;background:none;color:var(--muted);
   font-size:16px;cursor:pointer;flex:0 0 auto;}
 .delete-btn:hover{color:var(--danger);}

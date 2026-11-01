@@ -170,12 +170,12 @@ def get_frequent_products(db, limit=8, exclude_names=None):
 @app.route("/")
 def lista():
     db = get_db()
-    only_pending = request.args.get("filtro") == "pendentes"
+    only_selected = request.args.get("filtro") == "selecionados"
 
     query = "SELECT * FROM shopping_list"
-    if only_pending:
-        query += " WHERE bought=0"
-    query += " ORDER BY bought ASC, created_at ASC"
+    if only_selected:
+        query += " WHERE bought=1"
+    query += " ORDER BY bought DESC, created_at ASC"
     rows = db.execute(query).fetchall()
 
     by_category = {}
@@ -218,7 +218,7 @@ def lista():
         by_category=by_category,
         avg_prices=avg_prices,
         display_names=display_names,
-        only_pending=only_pending,
+        only_selected=only_selected,
         categorias=sorted(by_category.keys()),
         pending_count=pending_count,
         cur_total=cur_total,
@@ -406,7 +406,9 @@ def api_process_receipt(receipt_id):
     )
     purchase_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
 
-    active_items = db.execute("SELECT id, product_name FROM shopping_list WHERE bought=0").fetchall()
+    # cruza so com produtos SELECIONADOS (bought=1 = "quero comprar agora");
+    # ao confirmar a compra via recibo, volta a bought=0 (deixa de ser preciso)
+    active_items = db.execute("SELECT id, product_name FROM shopping_list WHERE bought=1").fetchall()
 
     checked_off = []
     for item in data.get("items", []):
@@ -429,7 +431,7 @@ def api_process_receipt(receipt_id):
         for active in active_items:
             if active["product_name"].lower() in item_name_lower or item_name_lower in active["product_name"].lower():
                 db.execute(
-                    "UPDATE shopping_list SET bought=1, bought_by='auto (recibo)', bought_at=? WHERE id=?",
+                    "UPDATE shopping_list SET bought=0, bought_by=NULL, bought_at=? WHERE id=?",
                     (datetime.now().isoformat(timespec="seconds"), active["id"]),
                 )
                 checked_off.append(active["product_name"])

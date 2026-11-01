@@ -37,8 +37,8 @@
   </form>
 
   <div class="filter-toggle">
-    <a href="{{ url_for('lista') }}" class="{{ 'active' if not only_pending else '' }}">Todos</a>
-    <a href="{{ url_for('lista', filtro='pendentes') }}" class="{{ 'active' if only_pending else '' }}">Só por comprar</a>
+    <a href="{{ url_for('lista') }}" class="{{ 'active' if not only_selected else '' }}">Todos</a>
+    <a href="{{ url_for('lista', filtro='selecionados') }}" class="{{ 'active' if only_selected else '' }}">Selecionados</a>
   </div>
 
   <main>
@@ -54,9 +54,9 @@
         </div>
         <ul class="item-list">
           {% for item in items %}
-          <li class="{{ 'bought' if item.bought else '' }} {{ 'hidden-item' if loop.index > 5 else '' }}">
+          <li class="{{ 'selected' if item.bought else '' }} {{ 'hidden-item' if loop.index > 5 else '' }}">
             <form method="post" action="{{ url_for('toggle_item', item_id=item.id) }}">
-              <button type="submit" class="check {{ 'done' if item.bought else '' }}" aria-label="Marcar comprado">{{ '✓' if item.bought else '' }}</button>
+              <button type="submit" class="check {{ 'done' if item.bought else '' }}" aria-label="Selecionar para comprar">{{ '✓' if item.bought else '' }}</button>
             </form>
             <div class="item-text">
               <div class="item-name">{{ display_names.get(item.id, item.product_name) }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
