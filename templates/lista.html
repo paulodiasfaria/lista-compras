@@ -36,6 +36,16 @@
     <button type="submit" aria-label="Adicionar">+</button>
   </form>
 
+  <div class="chips">
+    {% for f in frequent %}
+    <form method="post" action="{{ url_for('add_item') }}" style="display:inline;">
+      <input type="hidden" name="product_name" value="{{ f.product_name }}">
+      <input type="hidden" name="category" value="{{ f.category }}">
+      <button type="submit" class="chip">+ {{ f.product_name }}</button>
+    </form>
+    {% endfor %}
+  </div>
+
   <main>
     {% for categoria in categorias %}
       {% set items = by_category.get(categoria, []) %}
@@ -55,7 +65,12 @@
             </form>
             <div class="item-text">
               <div class="item-name">{{ item.product_name }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
-              {% if item.added_by %}<div class="item-price">adicionado por {{ item.added_by }}</div>{% endif %}
+              {% set avg = avg_prices.get(item.id) %}
+              {% if avg %}
+              <div class="item-price">€{{ "%.2f"|format(avg)|replace(".", ",") }}/un</div>
+              {% elif item.added_by %}
+              <div class="item-price">adicionado por {{ item.added_by }}</div>
+              {% endif %}
             </div>
             <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}">
               <button type="submit" class="delete-btn" aria-label="Remover">×</button>

@@ -44,6 +44,12 @@ h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-0.01em;}
   color:#fff;font-size:22px;line-height:1;cursor:pointer;}
 .add-bar button:hover{background:#3f5a3b;}
 
+.chips{display:flex;gap:7px;padding:4px 16px 12px;overflow-x:auto;}
+.chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--border);
+  background:var(--card);font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;
+  font-family:inherit;appearance:none;-webkit-appearance:none;}
+.chip:hover{border-color:var(--accent);color:var(--accent);}
+
 main{flex:1;padding:4px 16px 24px;}
 .category{margin-top:16px;}
 .category-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 6px 2px;}

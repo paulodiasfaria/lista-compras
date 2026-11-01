@@ -74,6 +74,42 @@ def guess_category(product_name):
     return "Supermercado"
 
 
+def get_avg_price(db, product_name):
+    """Media do preco das ultimas 2 compras deste produto (match exato,
+    case-insensitive, sobre purchase_items). None se nunca foi comprado."""
+    rows = db.execute(
+        """SELECT pi.line_total FROM purchase_items pi
+           JOIN purchases p ON p.id = pi.purchase_id
+           WHERE LOWER(pi.product_name) = LOWER(?)
+           ORDER BY p.id DESC, pi.id DESC
+           LIMIT 2""",
+        (product_name,),
+    ).fetchall()
+    if not rows:
+        return None
+    return sum(r["line_total"] for r in rows) / len(rows)
+
+
+def get_frequent_products(db, limit=8, exclude_names=None):
+    """Produtos mais comprados no historico (por numero de vezes),
+    excluindo os que ja estao na lista ativa."""
+    exclude_names = {n.lower() for n in (exclude_names or [])}
+    rows = db.execute(
+        """SELECT product_name, category, COUNT(*) AS n
+           FROM purchase_items
+           GROUP BY LOWER(product_name)
+           ORDER BY n DESC, product_name ASC"""
+    ).fetchall()
+    result = []
+    for r in rows:
+        if r["product_name"].lower() in exclude_names:
+            continue
+        result.append({"product_name": r["product_name"], "category": r["category"]})
+        if len(result) >= limit:
+            break
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Paginas
 # ---------------------------------------------------------------------------
@@ -86,8 +122,13 @@ def lista():
     ).fetchall()
 
     by_category = {}
+    avg_prices = {}
     for r in rows:
         by_category.setdefault(r["category"], []).append(r)
+        avg_prices[r["id"]] = get_avg_price(db, r["product_name"])
+
+    active_names = [r["product_name"] for r in rows]
+    frequent = get_frequent_products(db, limit=8, exclude_names=active_names)
 
     pending_count = db.execute(
         "SELECT COUNT(*) AS c FROM pending_receipts WHERE status='pending'"
@@ -117,7 +158,9 @@ def lista():
         "lista.html",
         active_page="lista",
         by_category=by_category,
-        categorias=CATEGORIAS,
+        avg_prices=avg_prices,
+        frequent=frequent,
+        categorias=sorted(by_category.keys()),
         pending_count=pending_count,
         cur_total=cur_total,
         delta_pct=delta_pct,
