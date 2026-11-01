@@ -15,6 +15,7 @@ Arquitetura:
   historico, adicionar item, marcar comprado) sao de uso direto, sem chave.
 """
 import os
+import re
 import sqlite3
 from datetime import date, datetime
 
@@ -90,6 +91,31 @@ def get_avg_price(db, product_name):
     return sum(r["line_total"] for r in rows) / len(rows)
 
 
+GRAMS_PATTERN = re.compile(r"(?:(\d+)\s*[Xx]\s*)?(\d+(?:[.,]\d+)?)\s*[Gg]\b")
+
+
+def extract_total_grams(product_name):
+    """Extrai o peso total em gramas do nome do produto, ex:
+    '200G' -> 200, '6X50G' -> 300, '14X35,7G' -> 499.8. None se nao achar."""
+    match = GRAMS_PATTERN.search(product_name)
+    if not match:
+        return None
+    multiplier = int(match.group(1)) if match.group(1) else 1
+    weight = float(match.group(2).replace(",", "."))
+    return multiplier * weight
+
+
+def price_display(avg_price, product_name):
+    """Devolve (valor, unidade) para mostrar: preco/kg se o produto tiver
+    peso em gramas no nome, senao preco/un normal."""
+    if avg_price is None:
+        return None, None
+    grams = extract_total_grams(product_name)
+    if grams:
+        return avg_price / (grams / 1000), "kg"
+    return avg_price, "un"
+
+
 def get_frequent_products(db, limit=8, exclude_names=None):
     """Produtos mais comprados no historico (por numero de vezes),
     excluindo os que ja estao na lista ativa."""
@@ -125,7 +151,9 @@ def lista():
     avg_prices = {}
     for r in rows:
         by_category.setdefault(r["category"], []).append(r)
-        avg_prices[r["id"]] = get_avg_price(db, r["product_name"])
+        avg = get_avg_price(db, r["product_name"])
+        value, unit = price_display(avg, r["product_name"])
+        avg_prices[r["id"]] = {"value": value, "unit": unit}
 
     active_names = [r["product_name"] for r in rows]
     frequent = get_frequent_products(db, limit=8, exclude_names=active_names)

@@ -65,9 +65,9 @@
             </form>
             <div class="item-text">
               <div class="item-name">{{ item.product_name }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
-              {% set avg = avg_prices.get(item.id) %}
-              {% if avg %}
-              <div class="item-price">€{{ "%.2f"|format(avg)|replace(".", ",") }}/un</div>
+              {% set p = avg_prices.get(item.id) %}
+              {% if p and p.value %}
+              <div class="item-price">€{{ "%.2f"|format(p.value)|replace(".", ",") }}/{{ p.unit }}</div>
               {% elif item.added_by %}
               <div class="item-price">adicionado por {{ item.added_by }}</div>
               {% endif %}
