@@ -332,3 +332,7 @@ if __name__ == "__main__":
     if not os.path.exists(DB_PATH):
         init_db()
     app.run(debug=True, port=5001)
+else:
+    # Quando importado via WSGI (produção), garante sempre que o esquema
+    # existe - CREATE TABLE IF NOT EXISTS e idempotente, seguro chamar sempre.
+    init_db()
