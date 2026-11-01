@@ -19,7 +19,7 @@ import re
 import sqlite3
 from datetime import date, datetime
 
-from flask import Flask, g, jsonify, redirect, render_template, request, url_for
+from flask import Flask, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from werkzeug.utils import secure_filename
 
 DB_PATH = os.environ.get("COMPRAS_DB_PATH", os.path.join(os.path.dirname(__file__), "compras.db"))
@@ -292,15 +292,22 @@ def upload_receipt():
     uploaded_by = request.form.get("uploaded_by", "").strip() or None
     if file and file.filename:
         filename = secure_filename(f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
-        path = os.path.join(UPLOAD_DIR, filename)
-        file.save(path)
+        file.save(os.path.join(UPLOAD_DIR, filename))
         db = get_db()
         db.execute(
             "INSERT INTO pending_receipts (photo_path, uploaded_by, uploaded_at, status) VALUES (?, ?, ?, 'pending')",
-            (path, uploaded_by, datetime.now().isoformat(timespec="seconds")),
+            (filename, uploaded_by, datetime.now().isoformat(timespec="seconds")),
         )
         db.commit()
     return redirect(url_for("historico"))
+
+
+@app.route("/uploads/<path:filename>")
+def serve_upload(filename):
+    """Serve fotos de recibos - pública (sem X-API-Key) para poder ser aberta
+    diretamente num <img> e também lida pelo agente Hermes via URL https
+    (o agente não tem acesso ao disco do servidor, só via HTTP)."""
+    return send_from_directory(UPLOAD_DIR, filename)
 
 
 # ---------------------------------------------------------------------------
@@ -316,7 +323,12 @@ def api_pending_receipts():
     rows = db.execute(
         "SELECT * FROM pending_receipts WHERE status='pending' ORDER BY uploaded_at"
     ).fetchall()
-    return jsonify([dict(r) for r in rows])
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["photo_url"] = url_for("serve_upload", filename=r["photo_path"], _external=True)
+        result.append(d)
+    return jsonify(result)
 
 
 @app.route("/api/receipts/<int:receipt_id>/process", methods=["POST"])

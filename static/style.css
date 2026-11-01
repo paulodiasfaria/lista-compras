@@ -111,7 +111,8 @@ ul.item-list li.hidden-item{display:none;}
 .receipt-thumb{width:52px;height:68px;border-radius:6px;flex:0 0 52px;background:#eee7da;
   border:1px dashed #c9c2b0;display:flex;align-items:center;justify-content:center;
   font-size:10px;color:var(--muted);text-align:center;overflow:hidden;}
-.receipt-thumb.has-photo{border-style:solid;background:#d8d2c2;color:var(--ink);font-weight:600;}
+.receipt-thumb.has-photo{border-style:solid;background:#d8d2c2;color:var(--ink);font-weight:600;
+  object-fit:cover;cursor:pointer;}
 .purchase-items{flex:1;min-width:0;list-style:none;margin:0;padding:0;}
 .purchase-items li{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;}
 .purchase-items li span:last-child{color:var(--muted);}

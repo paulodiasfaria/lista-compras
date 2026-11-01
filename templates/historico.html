@@ -54,8 +54,10 @@
         <span class="purchase-date">{{ p.purchase_date or '—' }}</span>
       </div>
       <div class="purchase-body">
-        {% if p.receipt_photo_path %}
-        <div class="receipt-thumb has-photo">📄<br>recibo</div>
+        {% if p.receipt_photo_path and '\\' not in p.receipt_photo_path and ':' not in p.receipt_photo_path %}
+        <a href="{{ url_for('serve_upload', filename=p.receipt_photo_path) }}" target="_blank">
+          <img class="receipt-thumb has-photo" src="{{ url_for('serve_upload', filename=p.receipt_photo_path) }}" alt="recibo">
+        </a>
         {% else %}
         <div class="receipt-thumb">sem<br>recibo</div>
         {% endif %}
