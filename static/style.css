@@ -50,6 +50,12 @@ h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-0.01em;}
   font-family:inherit;appearance:none;-webkit-appearance:none;}
 .chip:hover{border-color:var(--accent);color:var(--accent);}
 
+.filter-toggle{display:flex;gap:6px;padding:0 16px 10px;}
+.filter-toggle a{flex:1;text-align:center;padding:7px 0;font-size:12.5px;font-weight:600;
+  color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:999px;
+  text-decoration:none;}
+.filter-toggle a.active{color:#fff;background:var(--accent);border-color:var(--accent);}
+
 main{flex:1;padding:4px 16px 24px;}
 .category{margin-top:16px;}
 .category-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 6px 2px;}

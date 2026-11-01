@@ -75,20 +75,18 @@ def guess_category(product_name):
     return "Supermercado"
 
 
-def get_avg_price(db, product_name):
-    """Media do preco das ultimas 2 compras deste produto (match exato,
-    case-insensitive, sobre purchase_items). None se nunca foi comprado."""
-    rows = db.execute(
-        """SELECT pi.line_total FROM purchase_items pi
+def get_avg_price_row(db, product_name):
+    """Ultimas 2 compras deste produto (unit_price e line_total), para
+    price_display decidir como calcular o preco/kg ou /un. Lista vazia se
+    nunca foi comprado."""
+    return db.execute(
+        """SELECT pi.line_total, pi.unit_price FROM purchase_items pi
            JOIN purchases p ON p.id = pi.purchase_id
            WHERE LOWER(pi.product_name) = LOWER(?)
            ORDER BY p.id DESC, pi.id DESC
            LIMIT 2""",
         (product_name,),
     ).fetchall()
-    if not rows:
-        return None
-    return sum(r["line_total"] for r in rows) / len(rows)
 
 
 GRAMS_PATTERN = re.compile(r"(?:(\d+)\s*[Xx]\s*)?(\d+(?:[.,]\d+)?)\s*[Gg]\b")
@@ -105,15 +103,44 @@ def extract_total_grams(product_name):
     return multiplier * weight
 
 
-def price_display(avg_price, product_name):
-    """Devolve (valor, unidade) para mostrar: preco/kg se o produto tiver
-    peso em gramas no nome, senao preco/un normal."""
-    if avg_price is None:
+def price_display(rows, product_name, category):
+    """Devolve (valor, unidade) para mostrar.
+    Regra: Frutas e Vegetais mostra sempre preco por kg -
+      1) se o produto foi pesado em kg (unit_price ja e o preco/kg da balanca,
+         caso dos produtos "a granel"), usa a media desse unit_price;
+      2) senao, se o nome tiver peso em gramas (embalagem fixa, ex "150G"),
+         converte line_total/gramas para €/kg;
+      3) senao, nao ha dados suficientes para um preco/kg - mostra /un como
+         ultimo recurso.
+    Todas as outras categorias mostram sempre preco por unidade (line_total)."""
+    if not rows:
         return None, None
-    grams = extract_total_grams(product_name)
-    if grams:
-        return avg_price / (grams / 1000), "kg"
-    return avg_price, "un"
+
+    is_fruta_veg = "fruta" in category.lower() or "vegeta" in category.lower()
+
+    if is_fruta_veg:
+        unit_prices = [r["unit_price"] for r in rows if r["unit_price"]]
+        if unit_prices:
+            return sum(unit_prices) / len(unit_prices), "kg"
+        grams = extract_total_grams(product_name)
+        if grams:
+            avg_total = sum(r["line_total"] for r in rows) / len(rows)
+            return avg_total / (grams / 1000), "kg"
+
+    avg_total = sum(r["line_total"] for r in rows) / len(rows)
+    return avg_total, "un"
+
+
+GRAMS_IN_NAME_PATTERN = re.compile(r"\s*\d+(?:[.,]\d+)?\s*[Gg]\b.*$")
+
+
+def clean_display_name(product_name, category):
+    """Remove o peso em gramas do nome, só para Frutas e Vegetais
+    (ex: 'Agrião 150g' -> 'Agrião'). Outras categorias ficam inalteradas."""
+    if "fruta" in category.lower() or "vegeta" in category.lower():
+        cleaned = GRAMS_IN_NAME_PATTERN.sub("", product_name).strip()
+        return cleaned or product_name
+    return product_name
 
 
 def get_frequent_products(db, limit=8, exclude_names=None):
@@ -143,17 +170,23 @@ def get_frequent_products(db, limit=8, exclude_names=None):
 @app.route("/")
 def lista():
     db = get_db()
-    rows = db.execute(
-        "SELECT * FROM shopping_list ORDER BY bought ASC, created_at ASC"
-    ).fetchall()
+    only_pending = request.args.get("filtro") == "pendentes"
+
+    query = "SELECT * FROM shopping_list"
+    if only_pending:
+        query += " WHERE bought=0"
+    query += " ORDER BY bought ASC, created_at ASC"
+    rows = db.execute(query).fetchall()
 
     by_category = {}
     avg_prices = {}
+    display_names = {}
     for r in rows:
         by_category.setdefault(r["category"], []).append(r)
-        avg = get_avg_price(db, r["product_name"])
-        value, unit = price_display(avg, r["product_name"])
+        avg = get_avg_price_row(db, r["product_name"])
+        value, unit = price_display(avg, r["product_name"], r["category"])
         avg_prices[r["id"]] = {"value": value, "unit": unit}
+        display_names[r["id"]] = clean_display_name(r["product_name"], r["category"])
 
     pending_count = db.execute(
         "SELECT COUNT(*) AS c FROM pending_receipts WHERE status='pending'"
@@ -184,6 +217,8 @@ def lista():
         active_page="lista",
         by_category=by_category,
         avg_prices=avg_prices,
+        display_names=display_names,
+        only_pending=only_pending,
         categorias=sorted(by_category.keys()),
         pending_count=pending_count,
         cur_total=cur_total,

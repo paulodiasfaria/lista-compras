@@ -36,6 +36,11 @@
     <button type="submit" aria-label="Adicionar">+</button>
   </form>
 
+  <div class="filter-toggle">
+    <a href="{{ url_for('lista') }}" class="{{ 'active' if not only_pending else '' }}">Todos</a>
+    <a href="{{ url_for('lista', filtro='pendentes') }}" class="{{ 'active' if only_pending else '' }}">Só por comprar</a>
+  </div>
+
   <main>
     {% for categoria in categorias %}
       {% set items = by_category.get(categoria, []) %}
@@ -54,7 +59,7 @@
               <button type="submit" class="check {{ 'done' if item.bought else '' }}" aria-label="Marcar comprado">{{ '✓' if item.bought else '' }}</button>
             </form>
             <div class="item-text">
-              <div class="item-name">{{ item.product_name }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
+              <div class="item-name">{{ display_names.get(item.id, item.product_name) }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
               {% set p = avg_prices.get(item.id) %}
               {% if p and p.value %}
               <div class="item-price">€{{ "%.2f"|format(p.value)|replace(".", ",") }}/{{ p.unit }}</div>
