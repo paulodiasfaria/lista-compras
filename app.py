@@ -155,9 +155,6 @@ def lista():
         value, unit = price_display(avg, r["product_name"])
         avg_prices[r["id"]] = {"value": value, "unit": unit}
 
-    active_names = [r["product_name"] for r in rows]
-    frequent = get_frequent_products(db, limit=8, exclude_names=active_names)
-
     pending_count = db.execute(
         "SELECT COUNT(*) AS c FROM pending_receipts WHERE status='pending'"
     ).fetchone()["c"]
@@ -187,7 +184,6 @@ def lista():
         active_page="lista",
         by_category=by_category,
         avg_prices=avg_prices,
-        frequent=frequent,
         categorias=sorted(by_category.keys()),
         pending_count=pending_count,
         cur_total=cur_total,

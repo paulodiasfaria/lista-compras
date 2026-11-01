@@ -36,16 +36,6 @@
     <button type="submit" aria-label="Adicionar">+</button>
   </form>
 
-  <div class="chips">
-    {% for f in frequent %}
-    <form method="post" action="{{ url_for('add_item') }}" style="display:inline;">
-      <input type="hidden" name="product_name" value="{{ f.product_name }}">
-      <input type="hidden" name="category" value="{{ f.category }}">
-      <button type="submit" class="chip">+ {{ f.product_name }}</button>
-    </form>
-    {% endfor %}
-  </div>
-
   <main>
     {% for categoria in categorias %}
       {% set items = by_category.get(categoria, []) %}
