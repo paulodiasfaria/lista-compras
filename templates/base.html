@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista de Compras — Família Faria Valadão</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="shell">
+  <div class="tabs">
+    <a class="tab {{ 'active' if active_page == 'lista' else '' }}" href="{{ url_for('lista') }}">Lista de Compras</a>
+    <a class="tab {{ 'active' if active_page == 'historico' else '' }}" href="{{ url_for('historico') }}">Histórico</a>
+  </div>
+  {% block content %}{% endblock %}
+  <footer>Lista de Compras — app pessoal</footer>
+</div>
+</body>
+</html>

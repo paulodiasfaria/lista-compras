@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+
+  <div class="history-header">
+    <h1>Histórico de Compras</h1>
+  </div>
+
+  <form class="upload-bar" method="post" action="{{ url_for('upload_receipt') }}" enctype="multipart/form-data">
+    <label class="upload-btn">
+      📷 Adicionar foto de recibo
+      <input type="file" name="photo" accept="image/*" capture="environment" required
+             onchange="this.form.submit()" style="display:none;">
+    </label>
+    <input type="hidden" name="uploaded_by" value="">
+  </form>
+
+  <form class="filter-bar" method="get" action="{{ url_for('historico') }}">
+    <div class="filter-row">
+      <div style="flex:1;">
+        <div class="filter-label">De</div>
+        <input type="date" name="date_from" value="{{ filters.date_from }}">
+      </div>
+      <div style="flex:1;">
+        <div class="filter-label">Até</div>
+        <input type="date" name="date_to" value="{{ filters.date_to }}">
+      </div>
+    </div>
+    <div class="filter-row">
+      <select name="store_type" onchange="this.form.submit()">
+        <option value="">Todos os tipos de loja</option>
+        {% for st in store_types %}
+        <option value="{{ st }}" {{ 'selected' if filters.store_type == st else '' }}>{{ st }}</option>
+        {% endfor %}
+      </select>
+      <select name="store_name" onchange="this.form.submit()">
+        <option value="">Todas as lojas</option>
+        {% for sn in store_names %}
+        <option value="{{ sn }}" {{ 'selected' if filters.store_name == sn else '' }}>{{ sn }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" style="font-size:12px;padding:6px;">Filtrar</button>
+  </form>
+
+  <div class="history-list">
+    {% for entry in purchases_with_items %}
+    {% set p = entry.purchase %}
+    <div class="purchase-card">
+      <div class="purchase-head">
+        <div class="purchase-store">
+          <span class="store-type">{{ p.store_type }}</span>
+          <span class="store-name">{{ p.store_name }}</span>
+        </div>
+        <span class="purchase-date">{{ p.purchase_date or '—' }}</span>
+      </div>
+      <div class="purchase-body">
+        {% if p.receipt_photo_path %}
+        <div class="receipt-thumb has-photo">📄<br>recibo</div>
+        {% else %}
+        <div class="receipt-thumb">sem<br>recibo</div>
+        {% endif %}
+        <ul class="purchase-items">
+          {% for item in entry.line_items %}
+          <li><span>{{ item.product_name }}</span><span>€{{ "%.2f"|format(item.line_total)|replace(".", ",") }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="purchase-total">Total: €{{ "%.2f"|format(p.total_paid or p.total)|replace(".", ",") }}</div>
+    </div>
+    {% endfor %}
+
+    {% if not purchases_with_items %}
+    <p class="empty-state">Ainda sem compras registadas.</p>
+    {% endif %}
+  </div>
+{% endblock %}

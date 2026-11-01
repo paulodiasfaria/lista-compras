@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+
+  <header>
+    <h1>Lista de Compras</h1>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="label">Gasto este mês</div>
+        <div class="value">€{{ "%.2f"|format(cur_total)|replace(".", ",") }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">vs. mês passado</div>
+        {% if delta_pct is not none %}
+          <div class="value {{ 'up' if delta_pct > 0 else '' }}">
+            {% if delta_pct > 0 %}<span class="arrow"></span>{% endif %}{{ delta_pct }}%
+          </div>
+        {% else %}
+          <div class="value">—</div>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if pending_count > 0 %}
+  <div class="pending-banner">
+    <span class="icon">📄</span>
+    <div class="text">
+      <strong>{{ pending_count }} recibo{{ 's' if pending_count != 1 else '' }} pendente{{ 's' if pending_count != 1 else '' }}</strong>
+      por processar — vai a Histórico para ver
+    </div>
+  </div>
+  {% endif %}
+
+  <form class="add-bar" method="post" action="{{ url_for('add_item') }}">
+    <input type="text" name="product_name" placeholder="Adicionar item… (ex: leite 2L)" required>
+    <button type="submit" aria-label="Adicionar">+</button>
+  </form>
+
+  <main>
+    {% for categoria in categorias %}
+      {% set items = by_category.get(categoria, []) %}
+      {% if items %}
+      <div class="category">
+        <div class="category-head">
+          <h2>{{ categoria }} <span class="count">({{ items|length }} produto{{ 's' if items|length != 1 else '' }})</span></h2>
+          {% if items|length > 5 %}
+          <button class="toggle-all" onclick="toggleCategory(this)">Todos</button>
+          {% endif %}
+        </div>
+        <ul class="item-list">
+          {% for item in items %}
+          <li class="{{ 'bought' if item.bought else '' }} {{ 'hidden-item' if loop.index > 5 else '' }}">
+            <form method="post" action="{{ url_for('toggle_item', item_id=item.id) }}">
+              <button type="submit" class="check {{ 'done' if item.bought else '' }}" aria-label="Marcar comprado">{{ '✓' if item.bought else '' }}</button>
+            </form>
+            <div class="item-text">
+              <div class="item-name">{{ item.product_name }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
+              {% if item.added_by %}<div class="item-price">adicionado por {{ item.added_by }}</div>{% endif %}
+            </div>
+            <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}">
+              <button type="submit" class="delete-btn" aria-label="Remover">×</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    {% endfor %}
+
+    {% if not by_category %}
+    <p class="empty-state">Lista vazia — adiciona o primeiro item acima.</p>
+    {% endif %}
+  </main>
+
+<script>
+function toggleCategory(btn){
+  const cat = btn.closest('.category');
+  const hidden = cat.querySelectorAll('.hidden-item');
+  const expanding = btn.textContent.trim() === 'Todos';
+  hidden.forEach(li => li.classList.toggle('hidden-item', !expanding));
+  btn.textContent = expanding ? 'Alguns' : 'Todos';
+}
+</script>
+{% endblock %}
