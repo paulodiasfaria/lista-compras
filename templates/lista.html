@@ -60,7 +60,7 @@
             </form>
             <div class="item-text">
               <div class="item-name-row" onclick="toggleEdit({{ item.id }})">
-                <div class="item-name">{{ display_names.get(item.id, item.product_name) }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
+                <div class="item-name">{{ display_names.get(item.id, item.product_name) }}</div>
                 <span class="edit-icon">✎</span>
               </div>
               {% set p = avg_prices.get(item.id) %}
@@ -77,7 +77,7 @@
                   <option value="{{ c }}" {{ 'selected' if c == item.category else '' }}>{{ c }}</option>
                   {% endfor %}
                 </select>
-                <input type="text" name="unit_price" value="{{ '%.2f'|format(item.unit_price)|replace('.', ',') if item.unit_price else '' }}" placeholder="Preço unit. (€)">
+                <input type="text" name="unit_price" value="{{ '%.2f'|format(p.value)|replace('.', ',') if p and p.value else '' }}" placeholder="Preço unit. (€)">
                 <button type="submit">Guardar</button>
               </form>
             </div>

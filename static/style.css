@@ -99,10 +99,12 @@ ul.item-list li.selected .item-name{font-weight:700;color:var(--accent);}
   font-size:12.5px;font-weight:600;cursor:pointer;}
 
 .qty-stepper{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
-.qty-stepper button{width:22px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--card);
-  color:var(--ink);font-size:14px;line-height:1;cursor:pointer;padding:0;}
-.qty-stepper input{width:30px;text-align:center;border:1px solid var(--border);border-radius:6px;
-  font-size:13px;padding:3px 0;background:var(--card);color:var(--ink);}
+.qty-stepper button{width:20px;height:20px;border-radius:5px;border:1px solid var(--border);background:var(--card);
+  color:var(--ink);font-size:13px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+.qty-stepper input{width:20px;text-align:center;border:1px solid var(--border);border-radius:5px;
+  font-size:12px;padding:2px 0;background:var(--card);color:var(--ink);-moz-appearance:textfield;}
+.qty-stepper input::-webkit-outer-spin-button,.qty-stepper input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;}
 
 .history-header{padding:16px 16px 4px;}
 .upload-bar{padding:12px 16px 0;}
