@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS shopping_list (
     product_name TEXT NOT NULL,
     category TEXT NOT NULL DEFAULT 'Outros',
     quantity TEXT,
+    unit_price REAL,                 -- preco unitario editavel manualmente
+    desired_qty INTEGER NOT NULL DEFAULT 1,  -- nº unidades pretendidas
     notes TEXT,
     added_by TEXT,
     bought INTEGER NOT NULL DEFAULT 0,

@@ -52,6 +52,23 @@ def init_db():
         with open(os.path.join(os.path.dirname(__file__), "schema.sql"), encoding="utf-8") as f:
             db.executescript(f.read())
         db.commit()
+        _migrate_schema(db)
+
+
+def _migrate_schema(db):
+    """Adiciona colunas novas a bases de dados já existentes (ALTER TABLE é
+    idempotente aqui porque ignoramos o erro 'duplicate column')."""
+    migrations = [
+        "ALTER TABLE shopping_list ADD COLUMN unit_price REAL",
+        "ALTER TABLE shopping_list ADD COLUMN desired_qty INTEGER NOT NULL DEFAULT 1",
+    ]
+    for sql in migrations:
+        try:
+            db.execute(sql)
+            db.commit()
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
 
 
 def require_api_key():
@@ -183,8 +200,11 @@ def lista():
     display_names = {}
     for r in rows:
         by_category.setdefault(r["category"], []).append(r)
-        avg = get_avg_price_row(db, r["product_name"])
-        value, unit = price_display(avg, r["product_name"], r["category"])
+        if r["unit_price"]:
+            value, unit = r["unit_price"], "un"
+        else:
+            avg = get_avg_price_row(db, r["product_name"])
+            value, unit = price_display(avg, r["product_name"], r["category"])
         avg_prices[r["id"]] = {"value": value, "unit": unit}
         display_names[r["id"]] = clean_display_name(r["product_name"], r["category"])
 
@@ -220,6 +240,7 @@ def lista():
         display_names=display_names,
         only_selected=only_selected,
         categorias=sorted(by_category.keys()),
+        all_categorias=sorted(set(CATEGORIAS) | set(by_category.keys())),
         pending_count=pending_count,
         cur_total=cur_total,
         delta_pct=delta_pct,
@@ -264,6 +285,35 @@ def toggle_item(item_id):
 def delete_item(item_id):
     db = get_db()
     db.execute("DELETE FROM shopping_list WHERE id=?", (item_id,))
+    db.commit()
+    return redirect(url_for("lista"))
+
+
+@app.route("/items/<int:item_id>/edit", methods=["POST"])
+def edit_item(item_id):
+    db = get_db()
+    product_name = request.form.get("product_name", "").strip()
+    category = request.form.get("category", "").strip()
+    unit_price_raw = request.form.get("unit_price", "").strip().replace(",", ".")
+    unit_price = float(unit_price_raw) if unit_price_raw else None
+    if not product_name or not category:
+        return redirect(url_for("lista"))
+    db.execute(
+        "UPDATE shopping_list SET product_name=?, category=?, unit_price=? WHERE id=?",
+        (product_name, category, unit_price, item_id),
+    )
+    db.commit()
+    return redirect(url_for("lista"))
+
+
+@app.route("/items/<int:item_id>/qty", methods=["POST"])
+def update_qty(item_id):
+    db = get_db()
+    try:
+        desired_qty = max(1, int(request.form.get("desired_qty", "1")))
+    except ValueError:
+        desired_qty = 1
+    db.execute("UPDATE shopping_list SET desired_qty=? WHERE id=?", (desired_qty, item_id))
     db.commit()
     return redirect(url_for("lista"))
 
@@ -447,6 +497,9 @@ def api_process_receipt(receipt_id):
 if __name__ == "__main__":
     if not os.path.exists(DB_PATH):
         init_db()
+    else:
+        with app.app_context():
+            _migrate_schema(get_db())
     app.run(debug=True, port=5001)
 else:
     # Quando importado via WSGI (produção), garante sempre que o esquema

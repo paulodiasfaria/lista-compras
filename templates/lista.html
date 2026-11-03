@@ -59,14 +59,35 @@
               <button type="submit" class="check {{ 'done' if item.bought else '' }}" aria-label="Selecionar para comprar">{{ '✓' if item.bought else '' }}</button>
             </form>
             <div class="item-text">
-              <div class="item-name">{{ display_names.get(item.id, item.product_name) }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
+              <div class="item-name-row" onclick="toggleEdit({{ item.id }})">
+                <div class="item-name">{{ display_names.get(item.id, item.product_name) }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</div>
+                <span class="edit-icon">✎</span>
+              </div>
               {% set p = avg_prices.get(item.id) %}
               {% if p and p.value %}
               <div class="item-price">€{{ "%.2f"|format(p.value)|replace(".", ",") }}/{{ p.unit }}</div>
               {% elif item.added_by %}
               <div class="item-price">adicionado por {{ item.added_by }}</div>
               {% endif %}
+
+              <form id="edit-form-{{ item.id }}" class="edit-form edit-form-closed" method="post" action="{{ url_for('edit_item', item_id=item.id) }}">
+                <input type="text" name="product_name" value="{{ item.product_name }}" placeholder="Nome">
+                <select name="category">
+                  {% for c in all_categorias %}
+                  <option value="{{ c }}" {{ 'selected' if c == item.category else '' }}>{{ c }}</option>
+                  {% endfor %}
+                </select>
+                <input type="text" name="unit_price" value="{{ '%.2f'|format(item.unit_price)|replace('.', ',') if item.unit_price else '' }}" placeholder="Preço unit. (€)">
+                <button type="submit">Guardar</button>
+              </form>
             </div>
+            {% if item.bought %}
+            <form method="post" action="{{ url_for('update_qty', item_id=item.id) }}" class="qty-stepper" onsubmit="return true;">
+              <button type="button" onclick="stepQty(this, -1)">−</button>
+              <input type="number" name="desired_qty" min="1" value="{{ item.desired_qty or 1 }}" onchange="this.form.submit()">
+              <button type="button" onclick="stepQty(this, 1)">+</button>
+            </form>
+            {% endif %}
             <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}">
               <button type="submit" class="delete-btn" aria-label="Remover">×</button>
             </form>
@@ -89,6 +110,16 @@ function toggleCategory(btn){
   const expanding = btn.textContent.trim() === 'Todos';
   hidden.forEach(li => li.classList.toggle('hidden-item', !expanding));
   btn.textContent = expanding ? 'Alguns' : 'Todos';
+}
+function toggleEdit(itemId){
+  const form = document.getElementById('edit-form-' + itemId);
+  form.classList.toggle('edit-form-closed');
+}
+function stepQty(btn, delta){
+  const input = btn.parentElement.querySelector('input[name="desired_qty"]');
+  const next = Math.max(1, (parseInt(input.value, 10) || 1) + delta);
+  input.value = next;
+  btn.closest('form').submit();
 }
 </script>
 {% endblock %}
