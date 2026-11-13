@@ -371,16 +371,37 @@ def historico():
 def upload_receipt():
     file = request.files.get("photo")
     uploaded_by = request.form.get("uploaded_by", "").strip() or None
+    outcome = None
     if file and file.filename:
-        filename = secure_filename(f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
-        file.save(os.path.join(UPLOAD_DIR, filename))
+        data = file.read()
         db = get_db()
-        db.execute(
-            "INSERT INTO pending_receipts (photo_path, uploaded_by, uploaded_at, status) VALUES (?, ?, ?, 'pending')",
-            (filename, uploaded_by, datetime.now().isoformat(timespec="seconds")),
-        )
-        db.commit()
-    return redirect(url_for("historico"))
+        # A mesma foto enviada duas vezes (toque duplo, reenvio por falta de
+        # feedback) nao cria um segundo recibo: compara o conteudo com os
+        # ficheiros ja recebidos.
+        duplicate = False
+        for row in db.execute("SELECT photo_path FROM pending_receipts WHERE status != 'discarded'").fetchall():
+            existing = os.path.join(UPLOAD_DIR, row["photo_path"])
+            try:
+                if os.path.getsize(existing) == len(data):
+                    with open(existing, "rb") as f:
+                        if f.read() == data:
+                            duplicate = True
+                            break
+            except OSError:
+                continue
+        if duplicate:
+            outcome = "repetido"
+        else:
+            filename = secure_filename(f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
+            with open(os.path.join(UPLOAD_DIR, filename), "wb") as f:
+                f.write(data)
+            db.execute(
+                "INSERT INTO pending_receipts (photo_path, uploaded_by, uploaded_at, status) VALUES (?, ?, ?, 'pending')",
+                (filename, uploaded_by, datetime.now().isoformat(timespec="seconds")),
+            )
+            db.commit()
+            outcome = "ok"
+    return redirect(url_for("historico", recibo=outcome))
 
 
 @app.route("/uploads/<path:filename>")
@@ -410,6 +431,28 @@ def api_pending_receipts():
         d["photo_url"] = url_for("serve_upload", filename=r["photo_path"], _external=True)
         result.append(d)
     return jsonify(result)
+
+
+@app.route("/api/receipts/<int:receipt_id>/discard", methods=["POST"])
+def api_discard_receipt(receipt_id):
+    """Descarta um recibo pendente sem criar compra (foto repetida ou
+    ilegivel). Apaga o ficheiro da foto."""
+    unauthorized = require_api_key()
+    if unauthorized:
+        return unauthorized
+    db = get_db()
+    receipt = db.execute("SELECT * FROM pending_receipts WHERE id=?", (receipt_id,)).fetchone()
+    if receipt is None:
+        return jsonify({"error": "not found"}), 404
+    if receipt["status"] != "pending":
+        return jsonify({"error": f"receipt is {receipt['status']}, not pending"}), 409
+    try:
+        os.remove(os.path.join(UPLOAD_DIR, receipt["photo_path"]))
+    except OSError:
+        pass
+    db.execute("UPDATE pending_receipts SET status='discarded' WHERE id=?", (receipt_id,))
+    db.commit()
+    return jsonify({"ok": True, "discarded": receipt_id})
 
 
 @app.route("/api/receipts/<int:receipt_id>/process", methods=["POST"])

@@ -149,3 +149,4 @@ ul.item-list li.selected .item-name{font-weight:700;color:var(--accent);}
 .empty-state{color:var(--muted);font-size:14px;text-align:center;padding:30px 16px;}
 
 footer{padding:10px 16px 20px;text-align:center;font-size:11px;color:var(--muted);}
+.upload-msg{font-size:13px;margin:6px 0 12px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.05);}

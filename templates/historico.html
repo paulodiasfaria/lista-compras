@@ -13,6 +13,11 @@
     </label>
     <input type="hidden" name="uploaded_by" value="">
   </form>
+  {% if request.args.get('recibo') == 'ok' %}
+  <p class="upload-msg">✅ Foto recebida. Fica pendente até ser processada.</p>
+  {% elif request.args.get('recibo') == 'repetido' %}
+  <p class="upload-msg">ℹ️ Essa foto já tinha sido enviada — não foi adicionada outra vez.</p>
+  {% endif %}
 
   <form class="filter-bar" method="get" action="{{ url_for('historico') }}">
     <div class="filter-row">
