@@ -8,7 +8,7 @@
   <form class="upload-bar" method="post" action="{{ url_for('upload_receipt') }}" enctype="multipart/form-data">
     <label class="upload-btn">
       📷 Adicionar foto de recibo
-      <input type="file" name="photo" accept="image/*" capture="environment" required
+      <input type="file" name="photo" accept="image/*" required
              onchange="this.form.submit()" style="display:none;">
     </label>
     <input type="hidden" name="uploaded_by" value="">
